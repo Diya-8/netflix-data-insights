@@ -37,7 +37,7 @@ This project explores Netflix's content dataset using Python (Pandas) and MySQL.
 Follow these steps to run the project on your system:
 
 ### 1. Clone the Repository
-```bash
+```
 git clone https://github.com/yourusername/netflix-data-analysis.git
 cd netflix-data-analysis
 ```
