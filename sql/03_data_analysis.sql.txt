@@ -1,0 +1,134 @@
+/*
+======================================================================
+Netflix Data Analysis - SQL Queries
+======================================================================
+
+Dataset: Netflix Movies and TV Shows
+Source: Kaggle (https://www.kaggle.com/datasets/shivamb/netflix-shows)
+Purpose: Analyze Netflix content using SQL
+
+Topics Covered:
+  1. Movie/TV counts by director (both)
+  2. Country with most comedy movies
+  3. Year-wise top movie directors
+  4. Average duration per genre
+  5. Directors who made both horror and comedy
+  6. Director genre listing (bonus)
+
+Author: Diya Rawat
+Date: 15 April 2025
+======================================================================
+*/
+
+/*--------------------------------------------------------------*/
+/* 1. Directors with both Movies and TV Shows                   */
+/*--------------------------------------------------------------*/
+SELECT 
+    nd.director,
+    COUNT(DISTINCT CASE WHEN n.type = 'Movie' THEN n.show_id END) AS no_of_movies,
+    COUNT(DISTINCT CASE WHEN n.type = 'TV Show' THEN n.show_id END) AS no_of_tvshow
+FROM 
+    netflix_raw n
+INNER JOIN 
+    netflix_directors nd ON n.show_id = nd.show_id
+GROUP BY 
+    nd.director
+HAVING 
+    COUNT(DISTINCT n.type) > 1;
+
+/*--------------------------------------------------------------*/
+/* 2. Country with Highest Number of Comedy Movies              */
+/*--------------------------------------------------------------*/
+SELECT 
+    nc.country, 
+    COUNT(DISTINCT ng.show_id) AS no_of_movies
+FROM 
+    netflix_listedins ng
+INNER JOIN 
+    netflix_countries nc ON ng.show_id = nc.show_id
+INNER JOIN 
+    netflix_raw n ON ng.show_id = n.show_id
+WHERE 
+    ng.genre = 'Comedies' AND n.type = 'Movie'
+GROUP BY 
+    nc.country
+ORDER BY 
+    no_of_movies DESC
+LIMIT 1;
+
+/*--------------------------------------------------------------*/
+/* 3. Top Director by Year (Movie Releases Only)                */
+/*--------------------------------------------------------------*/
+WITH cte AS (
+    SELECT 
+        nd.director, 
+        YEAR(STR_TO_DATE(n.date_added, '%M %d, %Y')) AS date_year, 
+        COUNT(DISTINCT n.show_id) AS no_of_movies
+    FROM 
+        netflix_raw n
+    INNER JOIN 
+        netflix_directors nd ON n.show_id = nd.show_id
+    WHERE 
+        n.date_added IS NOT NULL
+        AND n.type = 'Movie'
+    GROUP BY 
+        nd.director, YEAR(STR_TO_DATE(n.date_added, '%M %d, %Y'))
+),
+cte2 AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY date_year ORDER BY no_of_movies DESC, director) AS rn
+    FROM 
+        cte
+)
+SELECT * 
+FROM cte2 
+WHERE rn = 1;
+
+/*--------------------------------------------------------------*/
+/* 4. Average Duration of Movies by Genre                       */
+/*--------------------------------------------------------------*/
+SELECT 
+    nl.genre, 
+    AVG(CAST(REPLACE(n.duration, ' min', '') AS UNSIGNED)) AS avg_duration
+FROM 
+    netflix_raw n
+INNER JOIN 
+    netflix_listedins nl ON n.show_id = nl.show_id
+WHERE 
+    n.type = 'Movie'
+GROUP BY 
+    nl.genre;
+
+/*--------------------------------------------------------------*/
+/* 5. Directors with Both Comedy and Horror Movies              */
+/*--------------------------------------------------------------*/
+SELECT 
+    nd.director,
+    COUNT(DISTINCT CASE WHEN nl.genre = 'Comedies' THEN n.show_id END) AS no_of_comedy,
+    COUNT(DISTINCT CASE WHEN nl.genre = 'Horror Movies' THEN n.show_id END) AS no_of_horror
+FROM 
+    netflix_raw n
+INNER JOIN 
+    netflix_listedins nl ON n.show_id = nl.show_id
+INNER JOIN 
+    netflix_directors nd ON n.show_id = nd.show_id
+WHERE 
+    n.type = 'Movie' 
+    AND nl.genre IN ('Comedies', 'Horror Movies')
+GROUP BY 
+    nd.director
+HAVING 
+    COUNT(DISTINCT nl.genre) = 2;
+
+/*--------------------------------------------------------------*/
+/* 6. Genre Listing for a Specific Director (Bonus Insight)     */
+/*--------------------------------------------------------------*/
+SELECT * 
+FROM netflix_listedins
+WHERE show_id IN (
+    SELECT show_id 
+    FROM netflix_directors 
+    WHERE director = 'Steve Brill'
+)
+ORDER BY genre;

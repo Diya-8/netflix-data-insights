@@ -1,0 +1,35 @@
+import pandas as pd
+from sqlalchemy import create_engine
+from urllib.parse import quote_plus
+
+# Load the CSV file
+df = pd.read_csv(r"path")
+
+# Database credentials
+username = 'your username'
+password = 'your password'
+host = 'host'
+database = 'database name'
+
+# Encode special characters in password
+encoded_password = quote_plus(password)
+
+# Create SQLAlchemy engine
+engine = create_engine(f"mysql+pymysql://{username}:{encoded_password}@{host}:3306/{database}", echo=True)
+
+# Test connection
+try:
+    connection = engine.connect()
+    print("Connection successful!")
+    connection.close()
+except Exception as e:
+    print("Connection failed:", e)
+
+# Save DataFrame to MySQL
+df.to_sql('netflix_raw', con=engine, index=False, if_exists='append')
+
+# Basic checks
+print(df.head())
+print(df[df.show_id == 's5023'])
+print("Max description length:", max(df.description.dropna().str.len()))
+print("Null values in each column:\n", df.isna().sum())

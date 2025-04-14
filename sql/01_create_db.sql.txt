@@ -1,0 +1,20 @@
+CREATE DATABASE IF NOT EXISTS netflix_db;
+USE netflix_db;
+
+DROP TABLE IF EXISTS netflix_raw;
+
+CREATE TABLE netflix_raw (
+  show_id VARCHAR(20) PRIMARY KEY,
+  type VARCHAR(20),
+  title VARCHAR(255),
+  director TEXT,
+  cast TEXT,
+  country VARCHAR(255),
+  date_added DATE,
+  release_year INT,
+  rating VARCHAR(20),
+  duration VARCHAR(20),
+  listed_in TEXT,
+  description TEXT
+);
+
